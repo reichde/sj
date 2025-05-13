@@ -5,143 +5,316 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>比赛胜率查询</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section-title {
+            margin-top: 0;
+            color: #333;
+        }
+        input, select, button {
+            padding: 8px;
+            margin: 5px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result-box {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            margin: 10px 0;
+        }
+        .highlight {
+            color: red;
+            font-weight: bold;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .match-details {
+            font-size: 0.9em;
+            color: #555;
+            margin-left: 15px;
+        }
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .flex-item {
+            flex: 1;
+            min-width: 300px;
+        }
+    </style>
 </head>
 <body>
     <h1>比赛胜率查询</h1>
 
-    <!-- 查询玩家名字 -->
-    <label for="playerNameInput">请输入玩家名字：</label>
-    <input type="text" id="playerNameInput" placeholder="例如: Ryutaku">
-    <button onclick="fetchPlayerByName()">查询玩家 Profile</button>
+    <div class="section">
+        <h2 class="section-title">玩家查询</h2>
+        <div class="flex-container">
+            <div class="flex-item">
+                <label for="playerNameInput">请输入玩家名字：</label>
+                <input type="text" id="playerNameInput" placeholder="例如: Ryutaku">
+                <button onclick="fetchPlayerByName()">查询玩家 Profile</button>
+                <div id="playerResult" class="result-box">输入玩家名字查询玩家信息...</div>
+            </div>
+            <div class="flex-item">
+                <label for="profileIdInput">请输入玩家 profileId：</label>
+                <input type="text" id="profileIdInput" placeholder="例如: 8965530">
+                <div id="playerInfo" class="result-box">输入玩家ID后查询比赛数据...</div>
+            </div>
+        </div>
+    </div>
 
-    <!-- 显示查询玩家的结果 -->
-    <div id="playerResult">玩家信息查询结果...</div>
+    <div class="section">
+        <h2 class="section-title">比赛查询</h2>
+        <div class="flex-container">
+            <div class="flex-item">
+                <label for="pageInput">查询界面50场：</label>
+                <input type="number" id="pageInput" value="1" min="1" style="width: 60px;">
+                
+                <label for="mapNameInput">选择地图名称：</label>
+                <select id="mapNameInput">
+                    <option value="">全部地图</option>
+                    <option value="阿拉伯半岛">阿拉伯半岛</option>
+                    <option value="游牧">游牧</option>
+                    <option value="陆地游牧">陆地游牧</option>
+                    <option value="竞技场">竞技场</option>
+                    <option value="非洲林中空地">非洲林中空地</option>
+                </select>
+                
+                <label for="roomNameInput">输入房间名筛选：</label>
+                <input type="text" id="roomNameInput" placeholder="例如: 777">
+                
+                <label><input type="checkbox" id="filterLastMonth"> 只查询过去一个月内的比赛</label>
+                
+                <button onclick="fetchMatches()">查询比赛</button>
+                <button onclick="calculateTotalWinRate()">计算查询过界面场数胜率</button>
+            </div>
+            <div class="flex-item">
+                <button onclick="fetch100Matches('游牧')">查询游牧所有比赛</button>
+                <button onclick="fetch100Matches('阿拉伯半岛')">查询阿拉伯所有比赛</button>
+                <button onclick="fetch100Matches('陆地游牧')">查询陆地游牧所有比赛</button>
+                <button onclick="fetch100Matches('竞技场')">查询竞技场所有比赛</button>
+                <button onclick="fetch100Matches('非洲林中空地')">查询非洲林中空地所有比赛</button>
+            </div>
+        </div>
+        
+        <h3 id="resultTitle"></h3>
+        <div id="winRate" class="result-box">等待查询...</div>
+        <div id="totalWinRate" class="result-box">总胜率等待计算...</div>
+    </div>
 
-    <!-- 输入 profileId -->
-    <label for="profileIdInput">请输入玩家 profileId：</label>
-    <input type="text" id="profileIdInput" placeholder="例如: 8965530">
-
-    <!-- 选择 page -->
-    <label for="pageInput">查询界面50场：</label>
-    <input type="number" id="pageInput" value="1">
-
-    <!-- 选择 mapName -->
-    <label for="mapNameInput">选择地图名称：</label>
-    <select id="mapNameInput">
-        <option value="">全部地图</option>
-        <option value="阿拉伯半岛">阿拉伯半岛</option>
-        <option value="游牧">游牧</option>
-    </select>
-
-    <!-- 输入房间名 -->
-    <label for="roomNameInput">输入房间名筛选：</label>
-    <input type="text" id="roomNameInput" placeholder="例如: 777">
-    <label for="filterLastMonth">只查询过去一个月内的比赛：</label>
-    <input type="checkbox" id="filterLastMonth">
-
-    <button onclick="fetchMatches()">查询比赛</button>
-    <button onclick="calculateTotalWinRate()">计算查询过界面场数胜率</button>
-
-    <!-- 查询游牧或阿拉伯满50场比赛 -->
-    <button onclick="fetch100Matches('游牧')">查询游牧所有比赛</button>
-    <button onclick="fetch100Matches('阿拉伯半岛')">查询阿拉伯所有比赛</button>
-
-    <h2 id="resultTitle"></h2>
-    <div id="winRate">等待查询...</div>
-    <div id="totalWinRate">总胜率等待计算...</div>
-	
-	    <!-- 查询两个玩家ID -->
-    <h2>查询两个玩家作为队友的胜率</h2>
-    <label for="playerId1Input">玩家 1 ID：</label>
-    <input type="text" id="playerId1Input" placeholder="例如: 8965530">
-    <label for="playerId2Input">玩家 2 ID：</label>
-    <input type="text" id="playerId2Input" placeholder="例如: 8965531">
-    <button onclick="fetchTeammateWinRate()">查询队友胜率</button>
-
-    <h2>查询两个玩家作为对手的胜率</h2>
-    <button onclick="fetchOpponentWinRate()">查询对手胜率</button>
-
-    <div id="teammateWinRate">队友胜率等待计算...</div>
-    <div id="opponentWinRate">对手胜率等待计算...</div>
+    <div class="section">
+        <h2 class="section-title">玩家关系查询</h2>
+        <div class="flex-container">
+            <div class="flex-item">
+                <label for="playerId1Input">玩家 1 ID：</label>
+                <input type="text" id="playerId1Input" placeholder="例如: 8965530">
+                
+                <label for="playerId2Input">玩家 2 ID：</label>
+                <input type="text" id="playerId2Input" placeholder="例如: 8965531">
+                
+                <button onclick="fetchTeammateWinRate()">查询队友胜率</button>
+                <button onclick="fetchOpponentWinRate()">查询对手胜率</button>
+            </div>
+        </div>
+        
+        <div id="teammateWinRate" class="result-box">队友胜率等待计算...</div>
+        <div id="opponentWinRate" class="result-box">对手胜率等待计算...</div>
+    </div>
 
     <script>
         // 定义API URL
         const apiUrl = "https://data.aoe2companion.com/api/matches?profile_ids=";
+        const profileApiUrl = "https://data.aoe2companion.com/api/profiles?page=1&search=";
+
+        // 数据缓存
+        const cache = {
+            playerData: {},
+            matchData: {},
+            lastFetchTime: {}
+        };
 
         // 保存每次分页查询的比赛数据
         let allMatches = [];
-        let playerName = "";  // 保存玩家名字
+        let currentPlayer = {
+            id: "",
+            name: ""
+        };
 
-        // 查询比赛数据
-function fetchMatches() {
-    const profileId = document.getElementById('profileIdInput').value;
-    const page = document.getElementById('pageInput').value || 1;  // 默认页面为 1
-    const mapName = document.getElementById('mapNameInput').value;
-    const roomName = document.getElementById('roomNameInput').value; // 获取用户输入的房间名
-    const filterLastMonth = document.getElementById('filterLastMonth').checked; // 获取是否勾选过去一个月筛选
+        // 显示加载状态
+        function showLoading(elementId, message = "加载中...") {
+            document.getElementById(elementId).innerHTML = `<span class="loading">${message}</span>`;
+        }
 
-    if (!profileId) {
-        alert('请输入有效的 profileId');
-        return;
-    }
+        // 处理API错误
+        function handleApiError(elementId, error) {
+            console.error(error);
+            document.getElementById(elementId).innerHTML = `获取数据时出错: ${error.message || "未知错误"}`;
+        }
 
-    // 获取当前时间和一个月前的时间
-    const now = new Date();
-    const oneMonthAgo = new Date(now.setMonth(now.getMonth() - 1));
-
-    // 通过 fetch 获取数据
-    fetch(`${apiUrl}${profileId}&leaderboard_ids=unranked&page=${page}&language=zh-hans`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("网络响应错误");
+        // 获取玩家信息
+        async function fetchPlayerByName() {
+            const playerName = document.getElementById('playerNameInput').value.trim();
+            if (!playerName) {
+                alert('请输入玩家名字');
+                return;
             }
-            return response.json();
-        })
-        .then(data => {
-            const matches = data.matches; // 假设比赛数据在 matches 字段中
-            let wins = 0;
-            let losses = 0;
 
-            // 遍历比赛数据
-            matches.forEach(match => {
-                const matchStarted = new Date(match.started);  // 比赛开始时间
+            showLoading('playerResult', `正在查询玩家 "${playerName}"...`);
 
-                // 如果启用了过去一个月筛选，跳过不在该范围内的比赛
-                if (filterLastMonth && matchStarted < oneMonthAgo) {
+            try {
+                // 检查缓存
+                if (cache.playerData[playerName] && Date.now() - cache.lastFetchTime[playerName] < 600000) {
+                    displayPlayerResults(cache.playerData[playerName]);
                     return;
                 }
 
-                // 筛选房间名
-                if (roomName && !match.name.includes(roomName)) {
-                    return;  // 如果房间名不匹配，跳过该场比赛
+                const response = await fetch(`${profileApiUrl}${encodeURIComponent(playerName)}&language=zh-hans`);
+                if (!response.ok) throw new Error("网络响应错误");
+                
+                const data = await response.json();
+                cache.playerData[playerName] = data.profiles;
+                cache.lastFetchTime[playerName] = Date.now();
+                
+                displayPlayerResults(data.profiles);
+            } catch (error) {
+                handleApiError('playerResult', error);
+            }
+        }
+
+        // 显示玩家查询结果
+        function displayPlayerResults(profiles) {
+            let resultHtml = `<h3>查询结果:</h3>`;
+            
+            if (profiles.length === 0) {
+                resultHtml += `<p>未找到匹配的玩家</p>`;
+            } else {
+                profiles.forEach(profile => {
+                    resultHtml += `
+                        <div>
+                            <p>玩家名: ${profile.name}</p>
+                            <p>Profile ID: ${profile.profileId}</p>
+                            <button onclick="setProfileId('${profile.profileId}', '${profile.name}')">使用此ID</button>
+                        </div>
+                    `;
+                });
+            }
+            
+            document.getElementById("playerResult").innerHTML = resultHtml;
+        }
+
+        // 设置玩家ID
+        function setProfileId(profileId, playerName) {
+            document.getElementById('profileIdInput').value = profileId;
+            currentPlayer.id = profileId;
+            currentPlayer.name = playerName;
+            document.getElementById('playerInfo').innerHTML = `当前玩家: <strong>${playerName}</strong> (ID: ${profileId})`;
+        }
+
+        // 获取比赛数据
+        async function fetchMatches() {
+            const profileId = document.getElementById('profileIdInput').value.trim();
+            const page = document.getElementById('pageInput').value || 1;
+            const mapName = document.getElementById('mapNameInput').value;
+            const roomName = document.getElementById('roomNameInput').value.trim();
+            const filterLastMonth = document.getElementById('filterLastMonth').checked;
+
+            if (!profileId) {
+                alert('请输入有效的 profileId');
+                return;
+            }
+
+            showLoading('winRate', `正在查询第 ${page} 页比赛数据...`);
+
+            try {
+                const cacheKey = `${profileId}-${page}-${mapName}-${roomName}-${filterLastMonth}`;
+                
+                // 检查缓存
+                if (cache.matchData[cacheKey] && Date.now() - cache.lastFetchTime[cacheKey] < 300000) {
+                    processMatchData(cache.matchData[cacheKey], page);
+                    return;
                 }
 
-                // 处理“游牧”和“非洲林中空地”视为同一张地图
-                if (mapName === "游牧" && (match.mapName === "非洲林中空地" || match.mapName === "游牧")) {
-                    // 继续处理
-                } else if (mapName && match.mapName !== mapName) {
-                    return; // 如果选择了其他地图名称，且比赛的地图名称与选择不匹配，则跳过该场比赛
-                }
+                const response = await fetch(`${apiUrl}${profileId}&leaderboard_ids=unranked&page=${page}&language=zh-hans`);
+                if (!response.ok) throw new Error("网络响应错误");
+                
+                const data = await response.json();
+                cache.matchData[cacheKey] = data;
+                cache.lastFetchTime[cacheKey] = Date.now();
+                
+                processMatchData(data, page);
+            } catch (error) {
+                handleApiError('winRate', error);
+            }
+        }
 
-                // 判断比赛时间是否超过10分钟
-                const startTime = new Date(match.started).getTime();
-                const finishTime = new Date(match.finished).getTime();
-                const duration = (finishTime - startTime) / 1000; // 计算时长，单位为秒
+        // 处理比赛数据
+        function processMatchData(data, page) {
+            const matches = data.matches || [];
+            const mapName = document.getElementById('mapNameInput').value;
+            const roomName = document.getElementById('roomNameInput').value.trim();
+            const filterLastMonth = document.getElementById('filterLastMonth').checked;
+            const now = new Date();
+            const oneMonthAgo = new Date(now.setMonth(now.getMonth() - 1));
 
-                if (duration < 600) {
-                    return; // 如果比赛时长小于10分钟，跳过
-                }
+            let wins = 0;
+            let losses = 0;
+            let matchDetails = [];
 
+            matches.forEach(match => {
+                const matchStarted = new Date(match.started);
+                
+                // 应用筛选条件
+                if (filterLastMonth && matchStarted < oneMonthAgo) return;
+                if (roomName && !match.name.includes(roomName)) return;
+                
+                // 特殊处理游牧地图
+                if (mapName === "游牧" && !["游牧", "非洲林中空地"].includes(match.mapName)) return;
+                if (mapName === "陆地游牧" && match.mapName !== "陆地游牧") return;
+                if (mapName === "竞技场" && match.mapName !== "竞技场") return;
+                if (mapName === "非洲林中空地" && match.mapName !== "非洲林中空地") return;
+                if (mapName && mapName !== "游牧" && mapName !== "陆地游牧" && mapName !== "竞技场" && mapName !== "非洲林中空地" && match.mapName !== mapName) return;
+                
+                // 检查比赛时长
+                const duration = (new Date(match.finished) - new Date(match.started)) / 1000;
+                if (duration < 600) return;
+
+                // 查找玩家
                 let playerFound = false;
-
-                // 遍历每个队伍
+                let playerWon = false;
+                
                 match.teams.forEach(team => {
                     team.players.forEach(player => {
-                        if (player.profileId == profileId) {
+                        if (player.profileId == currentPlayer.id) {
                             playerFound = true;
-                            playerName = player.name;  // 保存玩家名字
+                            currentPlayer.name = player.name;
+                            
                             if (player.ratingDiff > 0) {
                                 wins++;
+                                playerWon = true;
                             } else if (player.ratingDiff < 0) {
                                 losses++;
                             }
@@ -149,417 +322,408 @@ function fetchMatches() {
                     });
                 });
 
-                if (!playerFound) {
-                    console.log("未找到玩家: " + profileId + " 在比赛 " + match.matchId);
+                if (playerFound) {
+                    matchDetails.push({
+                        id: match.matchId,
+                        map: match.mapName,
+                        started: match.started,
+                        duration: Math.floor(duration / 60) + "分钟",
+                        won: playerWon,
+                        name: match.name
+                    });
                 }
             });
 
-            // 将当前页的数据保存
-            allMatches.push({
-                page,
-                wins,
-                losses
-            });
-
-            // 计算当前页面胜率
-            const totalMatches = wins + losses;
-            const winRate = totalMatches > 0 ? (wins / totalMatches) * 100 : 0;
+            // 保存当前页数据
+            allMatches.push({ page, wins, losses, matchDetails });
 
             // 显示结果
-            document.getElementById("resultTitle").innerHTML = `
-                玩家名字: ${playerName} (Profile ID: ${profileId}), Page: ${page}
-            `;
-            document.getElementById("winRate").innerHTML = `
-                当前页面总比赛场次: ${totalMatches}<br>
-                胜场次数: ${wins}<br>
-                负场次数: ${losses}<br>
-                当前页面胜率: ${winRate.toFixed(2)}%
-            `;
-        })
-        .catch(error => {
-            // 处理错误
-            document.getElementById("winRate").innerHTML = "获取数据时出错: " + error;
-        });
-}
+            displayMatchResults(page, wins, losses, matchDetails);
+        }
 
+        // 显示比赛结果
+        function displayMatchResults(page, wins, losses, matchDetails) {
+            const totalMatches = wins + losses;
+            const winRate = totalMatches > 0 ? (wins / totalMatches) * 100 : 0;
+            
+            let detailsHtml = matchDetails.map(match => `
+                <div class="match-details">
+                    ${match.won ? '✅' : '❌'} 
+                    ${match.map} - ${match.name} - 
+                    ${new Date(match.started).toLocaleString()} - 
+                    时长: ${match.duration}
+                </div>
+            `).join('');
+            
+            document.getElementById("resultTitle").innerHTML = `
+                玩家: <span class="highlight">${currentPlayer.name}</span> (ID: ${currentPlayer.id}), 第 ${page} 页
+            `;
+            
+            document.getElementById("winRate").innerHTML = `
+                <p>当前页面总比赛场次: ${totalMatches}</p>
+                <p>胜场次数: ${wins}</p>
+                <p>负场次数: ${losses}</p>
+                <p>当前页面胜率: <span class="highlight">${winRate.toFixed(2)}%</span></p>
+                ${detailsHtml}
+            `;
+        }
 
         // 计算总胜率
         function calculateTotalWinRate() {
+            if (allMatches.length === 0) {
+                document.getElementById("totalWinRate").innerHTML = "没有可计算的比赛数据";
+                return;
+            }
+
             let totalWins = 0;
             let totalLosses = 0;
+            let allMatchDetails = [];
 
             allMatches.forEach(matchData => {
                 totalWins += matchData.wins;
                 totalLosses += matchData.losses;
+                allMatchDetails = allMatchDetails.concat(matchData.matchDetails);
             });
 
             const totalMatches = totalWins + totalLosses;
             const totalWinRate = totalMatches > 0 ? (totalWins / totalMatches) * 100 : 0;
 
-            // 显示总胜率
             document.getElementById("totalWinRate").innerHTML = `
-                玩家名字: ${playerName} (Profile ID: ${document.getElementById('profileIdInput').value})<br>
-                总比赛场次: ${totalMatches}<br>
-                总胜场次数: ${totalWins}<br>
-                总负场次数: ${totalLosses}<br>
-                总胜率: ${totalWinRate.toFixed(2)}%
+                <p>玩家: <span class="highlight">${currentPlayer.name}</span> (ID: ${currentPlayer.id})</p>
+                <p>总比赛场次: ${totalMatches} (来自 ${allMatches.length} 页数据)</p>
+                <p>总胜场次数: ${totalWins}</p>
+                <p>总负场次数: ${totalLosses}</p>
+                <p>总胜率: <span class="highlight">${totalWinRate.toFixed(2)}%</span></p>
             `;
         }
 
-        // 新增全局变量用于累计比赛
-        let totalMatchesCount = 0;  // 用于累计比赛的数量
-        let totalWins = 0;  // 累计胜场
-        let totalLosses = 0;  // 累计负场
-
-        // 查询满足50场比赛数据的函数
-function fetch100Matches(mapType) {
-    const profileId = document.getElementById('profileIdInput').value;
-    const roomName = document.getElementById('roomNameInput').value; // 获取房间名
-    const filterLastMonth = document.getElementById('filterLastMonth').checked; // 是否筛选过去一个月的比赛
-    let page = 1;  // 从第一页开始加载
-    const targetMapNames = mapType === '游牧' ? ["游牧", "非洲林中空地"] : ["阿拉伯半岛"];  // 根据选择地图
-
-    if (!profileId) {
-        alert('请输入有效的 profileId');
-        return;
-    }
-
-    // 获取当前时间和一个月前的时间
-    const now = new Date();
-    const oneMonthAgo = new Date(now.setMonth(now.getMonth() - 1)); // 获取一个月前的时间
-
-    // 重置全局变量
-    let totalMatchesCount = 0;
-    let totalWins = 0;
-    let totalLosses = 0;
-    let playerName = '';
-    let stopFetching = false;  // 是否停止加载数据的标志
-
-    // 定义一个函数来加载并处理比赛数据
-    function loadMatches() {
-        // 如果页数超过10，停止查询并返回结果
-        if (page >= 10 || stopFetching || totalMatchesCount >= 500) {
-            console.log("查询已达到最大页数、满足场次要求或找到超出一个月前的比赛，返回结果。");
-            calculateFinalWinRate();
-            return;
-        }
-
-        fetch(`${apiUrl}${profileId}&leaderboard_ids=unranked&page=${page}&language=zh-hans`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("网络响应错误");
-                }
-                return response.json();
-            })
-            .then(data => {
-                const matches = data.matches;
-
-                // 遍历每场比赛
-                matches.forEach(match => {
-                    const mapName = match.mapName;
-                    const matchStarted = new Date(match.started);  // 获取比赛开始时间
-
-                    // 如果筛选过去一个月的比赛，且比赛时间早于一个月前，停止查询并返回结果
-                    if (filterLastMonth && matchStarted < oneMonthAgo) {
-                        stopFetching = true;  // 设置停止标志
-                        console.log("查询到一个月前的比赛，停止查询。");
-                        return; // 跳出当前循环，停止处理后续比赛
-                    }
-
-                    if (roomName && !match.name.includes(roomName)) {
-                        return; // 房间名不匹配，跳过
-                    }
-
-                    if (!targetMapNames.includes(mapName)) {
-                        return;  // 地图名不匹配，跳过
-                    }
-
-                    // 判断比赛时长是否大于10分钟
-                    const startTime = new Date(match.started).getTime();
-                    const finishTime = new Date(match.finished).getTime();
-                    const duration = (finishTime - startTime) / 1000; // 秒为单位
-
-                    if (duration < 600) {
-                        return; // 如果比赛时长小于10分钟，跳过
-                    }
-
-                    let playerFound = false;
-
-                    match.teams.forEach(team => {
-                        team.players.forEach(player => {
-                            if (player.profileId == profileId) {
-                                playerFound = true;
-                                playerName = player.name;
-
-                                if (player.ratingDiff > 0) {
-                                    totalWins++;
-                                } else if (player.ratingDiff < 0) {
-                                    totalLosses++;
-                                }
-                                totalMatchesCount++;  // 累加比赛数量
-                            }
-                        });
-                    });
-
-                    if (!playerFound) {
-                        console.log("未找到玩家: " + profileId + " 在比赛 " + match.matchId);
-                    }
-                });
-
-                // 判断是否达到了 100 场比赛
-                if (totalMatchesCount >= 500 || stopFetching) {
-                    calculateFinalWinRate();
-                } else {
-                    page++;  // 继续加载下一页
-                    loadMatches();  // 递归调用，加载下一页
-                }
-            })
-            .catch(error => {
-                document.getElementById("winRate").innerHTML = "获取数据时出错: " + error;
-            });
-    }
-
-    // 调用加载比赛数据
-    loadMatches();
-
-    // 计算最终的胜率并显示结果
-    function calculateFinalWinRate() {
-        const totalMatches = totalWins + totalLosses;
-        const winRate = totalMatches > 0 ? (totalWins / totalMatches) * 100 : 0;
-
-        // 显示结果
-        document.getElementById("resultTitle").innerHTML = `
-            玩家名字: <span style="color:red;">${playerName}</span> (Profile ID: ${profileId}), 当前页数: ${page},<span style="color:red;">地图: ${mapType}</span>
-        `;
-        document.getElementById("winRate").innerHTML = `
-            总比赛场次: ${totalMatches}<br>
-            胜场次数: ${totalWins}<br>
-            负场次数: ${totalLosses}<br>
-            总胜率: <span style="color:red;">${winRate.toFixed(2)}%</span>
-        `;
-    }
-}
-
-
-         function fetchTeammateWinRate() {
-            const playerId1 = document.getElementById('playerId1Input').value;
-            const playerId2 = document.getElementById('playerId2Input').value;
-            let page = 1;
-            let totalWins = 0, totalLosses = 0, totalMatchesCount = 0;
-            let winDetails = [];
-
-            if (!playerId1 || !playerId2) {
-                alert('请输入两个有效的 profileId');
+        // 查询指定地图的所有比赛
+        async function fetch100Matches(mapType) {
+            const profileId = document.getElementById('profileIdInput').value.trim();
+            const roomName = document.getElementById('roomNameInput').value.trim();
+            const filterLastMonth = document.getElementById('filterLastMonth').checked;
+            
+            if (!profileId) {
+                alert('请输入有效的 profileId');
                 return;
             }
 
-            function loadMatches() {
-                fetch(`${apiUrl}${playerId1}&leaderboard_ids=unranked&page=${page}&language=zh-hans`)
-                    .then(response => {
-                        if (!response.ok) throw new Error("网络响应错误");
-                        return response.json();
-                    })
-                    .then(data => {
-                        const matches = data.matches;
+            showLoading('winRate', `正在查询${mapType}比赛数据...`);
 
-                        matches.forEach(match => {
-                            let player1Found = false, player2Found = false;
+            const targetMapNames = mapType === '游牧' ? ["游牧", "非洲林中空地"] : 
+                                 mapType === '陆地游牧' ? ["陆地游牧"] : 
+                                 mapType === '竞技场' ? ["竞技场"] :
+                                 mapType === '非洲林中空地' ? ["非洲林中空地"] :
+                                 ["阿拉伯半岛"];
+            const now = new Date();
+            const oneMonthAgo = new Date(now.setMonth(now.getMonth() - 1));
+            
+            let page = 1;
+            let totalWins = 0;
+            let totalLosses = 0;
+            let totalMatchesCount = 0;
+            let stopFetching = false;
+            let matchDetails = [];
 
-                            match.teams.forEach(team => {
-                                let isPlayer1InTeam = false, isPlayer2InTeam = false;
+            async function loadMatches() {
+                if (stopFetching || page >= 10 || totalMatchesCount >= 500) {
+                    displayFinalResults(mapType, totalWins, totalLosses, matchDetails);
+                    return;
+                }
 
-                                team.players.forEach(player => {
-                                    if (player.profileId == playerId1) {
-                                        player1Found = true;
-                                        isPlayer1InTeam = true;
-                                    }
-                                    if (player.profileId == playerId2) {
-                                        player2Found = true;
-                                        isPlayer2InTeam = true;
-                                    }
-                                });
+                try {
+                    const response = await fetch(`${apiUrl}${profileId}&leaderboard_ids=unranked&page=${page}&language=zh-hans`);
+                    if (!response.ok) throw new Error("网络响应错误");
+                    
+                    const data = await response.json();
+                    const matches = data.matches || [];
 
-                                if (isPlayer1InTeam && isPlayer2InTeam) {
-                                    totalMatchesCount++;
-                                    if (team.players.some(player => player.won)) {
+                    for (const match of matches) {
+                        const matchStarted = new Date(match.started);
+                        
+                        if (filterLastMonth && matchStarted < oneMonthAgo) {
+                            stopFetching = true;
+                            break;
+                        }
+                        
+                        if (roomName && !match.name.includes(roomName)) continue;
+                        if (!targetMapNames.includes(match.mapName)) continue;
+                        
+                        const duration = (new Date(match.finished) - new Date(match.started)) / 1000;
+                        if (duration < 600) continue;
+
+                        let playerFound = false;
+                        let playerWon = false;
+                        
+                        for (const team of match.teams) {
+                            for (const player of team.players) {
+                                if (player.profileId == profileId) {
+                                    playerFound = true;
+                                    currentPlayer.name = player.name;
+                                    
+                                    if (player.ratingDiff > 0) {
                                         totalWins++;
-                                        winDetails.push({
-                                            matchId: match.matchId,
-                                            players: team.players
-                                        });
-                                    } else {
+                                        playerWon = true;
+                                    } else if (player.ratingDiff < 0) {
                                         totalLosses++;
                                     }
                                 }
-                            });
-                        });
-
-                        if (totalMatchesCount >= 50 || page >= 10) {
-                            const totalMatches = totalWins + totalLosses;
-                            const totalWinRate = totalMatches > 0 ? (totalWins / totalMatches) * 100 : 0;
-
-                            let winDetailsHtml = winDetails.map(detail => {
-                                return `<div>比赛 ID: ${detail.matchId} | 胜利玩家: ${detail.players.map(player => `${player.name} (${player.rating})`).join(', ')}</div>`;
-                            }).join('');
-
-                            document.getElementById("teammateWinRate").innerHTML = `
-                                玩家 1 ID: ${playerId1} 和 玩家 2 ID: ${playerId2}<br>
-                                总比赛场次: ${totalMatches}<br>
-                                总胜场次数: ${totalWins}<br>
-                                总负场次数: ${totalLosses}<br>
-                                总胜率: ${totalWinRate.toFixed(2)}%<br>
-                                胜利场次详情:<br>
-                                ${winDetailsHtml}
-                            `;
-                        } else {
-                            page++;
-                            loadMatches();
+                            }
                         }
-                    })
-                    .catch(error => {
-                        document.getElementById("teammateWinRate").innerHTML = "获取数据时出错: " + error;
-                    });
+
+                        if (playerFound) {
+                            totalMatchesCount++;
+                            matchDetails.push({
+                                id: match.matchId,
+                                map: match.mapName,
+                                started: match.started,
+                                duration: Math.floor(duration / 60) + "分钟",
+                                won: playerWon,
+                                name: match.name
+                            });
+                        }
+                    }
+
+                    page++;
+                    if (!stopFetching) {
+                        document.getElementById("winRate").innerHTML = 
+                            `已查询 ${page-1} 页，找到 ${totalMatchesCount} 场${mapType}比赛...`;
+                        setTimeout(loadMatches, 500); // 添加延迟防止请求过快
+                    } else {
+                        displayFinalResults(mapType, totalWins, totalLosses, matchDetails);
+                    }
+                } catch (error) {
+                    handleApiError('winRate', error);
+                }
             }
 
             loadMatches();
         }
 
-        function fetchOpponentWinRate() {
-            const playerId1 = document.getElementById('playerId1Input').value;
-            const playerId2 = document.getElementById('playerId2Input').value;
-            let page = 1;
-            let totalWins = 0, totalLosses = 0, totalMatchesCount = 0;
-            let winDetails = [];
+        // 显示最终结果
+        function displayFinalResults(mapType, wins, losses, matchDetails) {
+            const totalMatches = wins + losses;
+            const winRate = totalMatches > 0 ? (wins / totalMatches) * 100 : 0;
+            
+            let detailsHtml = matchDetails.map(match => `
+                <div class="match-details">
+                    ${match.won ? '✅' : '❌'} 
+                    ${match.map} - ${match.name} - 
+                    ${new Date(match.started).toLocaleString()} - 
+                    时长: ${match.duration}
+                </div>
+            `).join('');
+            
+            document.getElementById("resultTitle").innerHTML = `
+                玩家: <span class="highlight">${currentPlayer.name}</span> (ID: ${currentPlayer.id}), 地图: <span class="highlight">${mapType}</span>
+            `;
+            
+            document.getElementById("winRate").innerHTML = `
+                <p>总比赛场次: ${totalMatches}</p>
+                <p>胜场次数: ${wins}</p>
+                <p>负场次数: ${losses}</p>
+                <p>总胜率: <span class="highlight">${winRate.toFixed(2)}%</span></p>
+                ${detailsHtml}
+            `;
+        }
 
+        // 查询队友胜率
+        async function fetchTeammateWinRate() {
+            const playerId1 = document.getElementById('playerId1Input').value.trim();
+            const playerId2 = document.getElementById('playerId2Input').value.trim();
+            
             if (!playerId1 || !playerId2) {
                 alert('请输入两个有效的 profileId');
                 return;
             }
 
-            function loadMatches() {
-                fetch(`${apiUrl}${playerId1}&leaderboard_ids=unranked&page=${page}&language=zh-hans`)
-                    .then(response => {
-                        if (!response.ok) throw new Error("网络响应错误");
-                        return response.json();
-                    })
-                    .then(data => {
-                        const matches = data.matches;
+            showLoading('teammateWinRate', `正在查询 ${playerId1} 和 ${playerId2} 的队友胜率...`);
+            
+            try {
+                let page = 1;
+                let totalWins = 0;
+                let totalLosses = 0;
+                let totalMatchesCount = 0;
+                let winDetails = [];
+                let player1Name = "";
+                let player2Name = "";
 
-                        matches.forEach(match => {
-                            let player1InTeam = false;
-                            let player2InTeam = false;
-                            let teamId1, teamId2;
+                async function loadMatches() {
+                    if (totalMatchesCount >= 50 || page >= 10) {
+                        displayRelationshipResults('teammateWinRate', '队友', player1Name, player2Name, totalWins, totalLosses, winDetails);
+                        return;
+                    }
 
-                            match.teams.forEach(team => {
-                                team.players.forEach(player => {
-                                    if (player.profileId == playerId1) {
-                                        player1InTeam = true;
-                                        teamId1 = team.teamId;
-                                    }
-                                    if (player.profileId == playerId2) {
-                                        player2InTeam = true;
-                                        teamId2 = team.teamId;
-                                    }
-                                });
-                            });
+                    const response = await fetch(`${apiUrl}${playerId1}&leaderboard_ids=unranked&page=${page}&language=zh-hans`);
+                    if (!response.ok) throw new Error("网络响应错误");
+                    
+                    const data = await response.json();
+                    const matches = data.matches || [];
 
-                            // 只计算双方在同一场比赛中且在不同队伍的情况
-                            if (player1InTeam && player2InTeam && teamId1 !== teamId2) {
-                                totalMatchesCount++;
-                                const winnerTeam = match.teams.find(team => team.teamId !== teamId1);
-                                if (winnerTeam && winnerTeam.players.some(player => player.won)) {
-                                    totalWins++;
-                                    winDetails.push({
-                                        matchId: match.matchId,
-                                        players: winnerTeam.players
-                                    });
-                                } else {
-                                    totalLosses++;
+                    for (const match of matches) {
+                        let player1Found = false;
+                        let player2Found = false;
+                        let teamId = null;
+                        let teamWon = false;
+
+                        for (const team of match.teams) {
+                            let isPlayer1InTeam = false;
+                            let isPlayer2InTeam = false;
+
+                            for (const player of team.players) {
+                                if (player.profileId == playerId1) {
+                                    player1Found = true;
+                                    player1Name = player.name;
+                                    isPlayer1InTeam = true;
+                                }
+                                if (player.profileId == playerId2) {
+                                    player2Found = true;
+                                    player2Name = player.name;
+                                    isPlayer2InTeam = true;
                                 }
                             }
-                        });
 
-                        if (totalMatchesCount >= 50 || page >= 10) {
-                            const totalMatches = totalWins + totalLosses;
-                            const totalWinRate = totalMatches > 0 ? (totalWins / totalMatches) * 100 : 0;
-
-                            let winDetailsHtml = winDetails.map(detail => {
-                                return `<div>比赛 ID: ${detail.matchId} | 胜利玩家: ${detail.players.map(player => `${player.name} (${player.rating})`).join(', ')}</div>`;
-                            }).join('');
-
-                            document.getElementById("opponentWinRate").innerHTML = `
-                                玩家 1 ID: ${playerId1} 和 玩家 2 ID: ${playerId2}<br>
-                                总比赛场次: ${totalMatches}<br>
-                                总胜场次数: ${totalWins}<br>
-                                总负场次数: ${totalLosses}<br>
-                                总胜率: ${totalWinRate.toFixed(2)}%<br>
-                                胜利场次详情:<br>
-                                ${winDetailsHtml}
-                            `;
-                        } else {
-                            page++;
-                            loadMatches();
+                            if (isPlayer1InTeam && isPlayer2InTeam) {
+                                teamId = team.teamId;
+                                teamWon = team.players.some(p => p.won);
+                                break;
+                            }
                         }
-                    })
-                    .catch(error => {
-                        document.getElementById("opponentWinRate").innerHTML = "获取数据时出错: " + error;
-                    });
+
+                        if (player1Found && player2Found && teamId !== null) {
+                            totalMatchesCount++;
+                            if (teamWon) {
+                                totalWins++;
+                                winDetails.push({
+                                    matchId: match.matchId,
+                                    players: match.teams.find(t => t.teamId === teamId).players
+                                });
+                            } else {
+                                totalLosses++;
+                            }
+                        }
+                    }
+
+                    page++;
+                    if (totalMatchesCount < 50 && page < 10) {
+                        document.getElementById("teammateWinRate").innerHTML = 
+                            `已查询 ${page-1} 页，找到 ${totalMatchesCount} 场共同比赛...`;
+                        setTimeout(loadMatches, 500);
+                    } else {
+                        displayRelationshipResults('teammateWinRate', '队友', player1Name, player2Name, totalWins, totalLosses, winDetails);
+                    }
+                }
+
+                loadMatches();
+            } catch (error) {
+                handleApiError('teammateWinRate', error);
             }
-
-            loadMatches();
-        }
-        // 计算最终的胜率并显示结果
-        function calculateFinalWinRate() {
-            const totalMatches = totalWins + totalLosses;
-            const totalWinRate = totalMatches > 0 ? (totalWins / totalMatches) * 100 : 0;
-
-            // 显示最终的结果
-            document.getElementById("winRate").innerHTML = `
-                玩家名字: ${playerName} (Profile ID: ${document.getElementById('profileIdInput').value})<br>
-                总比赛场次: ${totalMatches}<br>
-                总胜场次数: ${totalWins}<br>
-                总负场次数: ${totalLosses}<br>
-                总胜率: ${totalWinRate.toFixed(2)}%
-            `;
         }
 
-        // 通过玩家名字查询玩家 Profile
-        function fetchPlayerByName() {
-            const playerName = document.getElementById('playerNameInput').value;
-            if (!playerName) {
-                alert('请输入玩家名字');
+        // 查询对手胜率
+        async function fetchOpponentWinRate() {
+            const playerId1 = document.getElementById('playerId1Input').value.trim();
+            const playerId2 = document.getElementById('playerId2Input').value.trim();
+            
+            if (!playerId1 || !playerId2) {
+                alert('请输入两个有效的 profileId');
                 return;
             }
 
-            const DE2ApiUrl = `https://data.aoe2companion.com/api/profiles?page=1&search=${playerName}&language=zh-hans`;
+            showLoading('opponentWinRate', `正在查询 ${playerId1} 和 ${playerId2} 的对手胜率...`);
+            
+            try {
+                let page = 1;
+                let totalWins = 0; // 玩家1获胜的次数
+                let totalLosses = 0; // 玩家1失败的次数
+                let totalMatchesCount = 0;
+                let winDetails = [];
+                let player1Name = "";
+                let player2Name = "";
 
-            fetch(DE2ApiUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("网络响应错误");
+                async function loadMatches() {
+                    if (totalMatchesCount >= 50 || page >= 10) {
+                        displayRelationshipResults('opponentWinRate', '对手', player1Name, player2Name, totalWins, totalLosses, winDetails);
+                        return;
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    const profiles = data.profiles;
-                    let resultHtml = `<h3>查询结果:</h3>`;
 
-                    // 遍历结果并显示名字和 profileId
-                    profiles.forEach(profile => {
-                        resultHtml += `
-                            <div>
-                                <p>玩家名: ${profile.name}</p>
-                                <p>Profile ID: ${profile.profileId}</p>
-                            </div>
-                        `;
-                    });
+                    const response = await fetch(`${apiUrl}${playerId1}&leaderboard_ids=unranked&page=${page}&language=zh-hans`);
+                    if (!response.ok) throw new Error("网络响应错误");
+                    
+                    const data = await response.json();
+                    const matches = data.matches || [];
 
-                    // 将结果显示在页面中
-                    document.getElementById("playerResult").innerHTML = resultHtml;
-                })
-                .catch(error => {
-                    document.getElementById("playerResult").innerHTML = "获取数据时出错: " + error;
-                });
+                    for (const match of matches) {
+                        let player1TeamId = null;
+                        let player2TeamId = null;
+
+                        for (const team of match.teams) {
+                            for (const player of team.players) {
+                                if (player.profileId == playerId1) {
+                                    player1Name = player.name;
+                                    player1TeamId = team.teamId;
+                                }
+                                if (player.profileId == playerId2) {
+                                    player2Name = player.name;
+                                    player2TeamId = team.teamId;
+                                }
+                            }
+                        }
+
+                        // 检查是否是对手关系
+                        if (player1TeamId !== null && player2TeamId !== null && player1TeamId !== player2TeamId) {
+                            totalMatchesCount++;
+                            const player1Team = match.teams.find(t => t.teamId === player1TeamId);
+                            if (player1Team.players.some(p => p.won)) {
+                                totalWins++;
+                                winDetails.push({
+                                    matchId: match.matchId,
+                                    players: player1Team.players
+                                });
+                            } else {
+                                totalLosses++;
+                            }
+                        }
+                    }
+
+                    page++;
+                    if (totalMatchesCount < 50 && page < 10) {
+                        document.getElementById("opponentWinRate").innerHTML = 
+                            `已查询 ${page-1} 页，找到 ${totalMatchesCount} 场对战比赛...`;
+                        setTimeout(loadMatches, 500);
+                    } else {
+                        displayRelationshipResults('opponentWinRate', '对手', player1Name, player2Name, totalWins, totalLosses, winDetails);
+                    }
+                }
+
+                loadMatches();
+            } catch (error) {
+                handleApiError('opponentWinRate', error);
+            }
+        }
+
+        // 显示关系结果
+        function displayRelationshipResults(elementId, relationshipType, player1Name, player2Name, wins, losses, details) {
+            const totalMatches = wins + losses;
+            const winRate = totalMatches > 0 ? (wins / totalMatches) * 100 : 0;
+            
+            let detailsHtml = details.map(detail => `
+                <div class="match-details">
+                    ${detail.players.map(player => 
+                        `${player.name} (${player.rating})`
+                    ).join(' vs ')}
+                </div>
+            `).join('');
+            
+            document.getElementById(elementId).innerHTML = `
+                <p>${player1Name} (ID: ${document.getElementById('playerId1Input').value}) 和 
+                ${player2Name} (ID: ${document.getElementById('playerId2Input').value}) 作为${relationshipType}的比赛结果:</p>
+                <p>总比赛场次: ${totalMatches}</p>
+                <p>${player1Name} 胜利次数: ${wins}</p>
+                <p>${player1Name} 失败次数: ${losses}</p>
+                <p>${player1Name} 胜率: <span class="highlight">${winRate.toFixed(2)}%</span></p>
+                ${detailsHtml}
+            `;
         }
     </script>
 </body>
